@@ -209,7 +209,7 @@ if __name__ == "__main__":
     # register and run ola DMX client
     wrapper = ClientWrapper()
     client = wrapper.Client()
-    client.RegisterUniverse(config["dmx.universe"], client.REGISTER, send_dmx_to_osc)
+    client.RegisterUniverse(int(config["dmx.universe"]), client.REGISTER, send_dmx_to_osc)
     wrapper.Run()
 
 exit(0)

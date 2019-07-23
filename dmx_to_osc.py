@@ -136,7 +136,17 @@ def parse_own_config(config_file):
                 logging.warning("config item '%s' channel must be int but '%s' given" % (key, str(key.split("_")[1])))
                 continue
 
-            mapping[channel] = value
+            if channel == 0:
+                logging.warning("channels in section '%s' need to start with 1" % this_section)
+                continue
+
+            if channel > dmx_num_channels:
+                logging.warning("config item '%s' exceeds the maximum number of valid DMX channels: %d" %
+                                (key, dmx_num_channels))
+                continue
+
+            # take care of id 0 = channel 1
+            mapping[channel - 1] = value
 
     config_dict[this_section] = mapping
 
@@ -176,7 +186,7 @@ def send_dmx_to_osc(data):
             if val > 2:
                 val = val / 2
 
-            logging.debug("Sending OSC command: %s => %d" % (config["dmx_to_osc"][channel], val))
+            logging.debug("Sending OSC command: %d => %d" % (int(config["dmx_to_osc"][channel]) + 1, val))
             osc_handle.send_message(b'/%s' % config["dmx_to_osc"][channel], [val])
 
     last_dmx_block = data

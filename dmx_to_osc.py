@@ -177,7 +177,7 @@ def send_dmx_to_osc(data):
         # if value for channel is different from last blocks value then send an OSC message
         if val != last_dmx_block[channel]:
             if config["dmx_to_osc"][channel] is None:
-                logging.error("Received value '%d' for undefined DMX channel '%d'" % (val, channel))
+                logging.error("Received value '%d' for undefined DMX channel '%d'" % (val, channel + 1 ))
                 continue
 
             if val >= 256:
@@ -186,7 +186,7 @@ def send_dmx_to_osc(data):
             if val > 2:
                 val = val / 2
 
-            logging.debug("Sending OSC command: %d => %d" % (int(config["dmx_to_osc"][channel]) + 1, val))
+            logging.debug("Sending OSC command: %s => %d" % (config["dmx_to_osc"][channel], val))
             osc_handle.send_message(b'/%s' % config["dmx_to_osc"][channel], [val])
 
     last_dmx_block = data

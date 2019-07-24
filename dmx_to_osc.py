@@ -1030,7 +1030,7 @@ def send_dmx_to_osc(data):
                 logging.debug("Sending OSC command: %s to %s" % (log_text, destination.get("name")))
 
                 try:
-                    send_osc_message(b'/%s' % osc_command,
+                    send_osc_message(b'%s' % osc_command,
                                      [sent_value], destination.get("server"), int(destination.get("port")))
                 except Exception as e:
                     logging.warning("Sending command to '%s' failed: %s" % (destination.get("name"), str(e)))
@@ -1058,6 +1058,7 @@ if __name__ == "__main__":
 
     # register and run ola DMX client
     if ola_present is True:
+        logging.info("starting DMX to OSC with OLA client")
         wrapper = ClientWrapper()
         client = wrapper.Client()
         client.RegisterUniverse(int(config["dmx.universe"]), client.REGISTER, send_dmx_to_osc)

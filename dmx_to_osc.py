@@ -10,7 +10,12 @@ import logging
 
 # 3rd party modules
 from oscpy.client import send_message as send_osc_message
-from ola.ClientWrapper import ClientWrapper
+
+ola_present = True
+try:
+    from ola.ClientWrapper import ClientWrapper
+except ImportError:
+    ola_present = False
 
 __version__ = "0.0.2"
 __version_date__ = "2019-07-24"
@@ -1052,10 +1057,13 @@ if __name__ == "__main__":
     config = parse_own_config(args.config_file)
 
     # register and run ola DMX client
-    wrapper = ClientWrapper()
-    client = wrapper.Client()
-    client.RegisterUniverse(int(config["dmx.universe"]), client.REGISTER, send_dmx_to_osc)
-    wrapper.Run()
+    if ola_present is True:
+        wrapper = ClientWrapper()
+        client = wrapper.Client()
+        client.RegisterUniverse(int(config["dmx.universe"]), client.REGISTER, send_dmx_to_osc)
+        wrapper.Run()
+    else:
+        logging.warning("OLA python libs not found.")
 
 exit(0)
 

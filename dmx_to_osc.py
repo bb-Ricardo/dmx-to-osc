@@ -9,11 +9,11 @@ import ConfigParser
 import logging
 
 # 3rd party modules
-from oscpy.client import OSCClient
+from oscpy.client import send_message as send_osc_message
 from ola.ClientWrapper import ClientWrapper
 
-__version__ = "0.0.1"
-__version_date__ = "2019-07-23"
+__version__ = "0.0.2"
+__version_date__ = "2019-07-24"
 __license__ = "GPLv3"
 __description__ = "script to receive dmx and send out osc commands to osc server"
 
@@ -847,63 +847,92 @@ def parse_own_config(config_file):
         logging.debug("Config: option %s not set. Using default value: %s" %
                       ("dmx.universe", str(default_dmx_universe)))
 
-    # read osc section
-    this_section = "osc"
-    if this_section not in config_handler.sections():
-        do_error_exit("Section '%s' not found in '%s'" % (this_section, config_file))
-    else:
-        # read universe if present
-        if "server" in list(dict(config_handler.items(this_section))):
-            config_dict["osc.server"] = config_handler.get(this_section, "server")
-            logging.debug("Config: %s = %s" % ("osc.server", config_dict["osc.server"]))
-        else:
-            do_error_exit("Option '%s' missing in config section '%s'" % ("server", this_section))
-
-        if "port" in list(dict(config_handler.items(this_section))):
-            config_dict["osc.port"] = config_handler.get(this_section, "port")
-            logging.debug("Config: %s = %s" % ("osc.port", config_dict["osc.port"]))
-
-        if config_dict.get("osc.port") is None:
-            config_dict["osc.port"] = default_osc_port
-            logging.debug("Config: option %s not set. Using default value: %s" % ("osc.port", str(default_osc_port)))
-
+    # initialize empty mapping array
     mapping = dict.fromkeys(range(dmx_num_channels), None)
 
-    # read dmx_to_osc section
     channel_prefix = "channel"
-    this_section = "dmx_to_osc"
-    if this_section not in config_handler.sections():
-        do_error_exit("Section '%s' not found in '%s'" % (this_section, config_file))
-    else:
-        for key, value in dict(config_handler.items(this_section)).items():
 
-            if key.split("_")[0] != channel_prefix:
-                logging.warning("config item '%s' starts with wrong prefix, expected: '%s'" % (key, channel_prefix))
-                continue
+    # get osc sections
+    for config_section in config_handler.sections():
 
-            try:
-                channel = int(key.split("_")[1])
-            except ValueError:
-                logging.warning("config item '%s' channel must be int but '%s' given" % (key, str(key.split("_")[1])))
-                continue
+        if config_section != "dmx" and not config_section.startswith("osc/"):
+            logging.warning("ignoring invalid section '%s' in config file." % config_section)
+            continue
 
-            if channel == 0:
-                logging.warning("channels in section '%s' need to start with 1" % this_section)
-                continue
+        if config_section.startswith("osc/"):
+            osc_destination = dict()
+            osc_destination["name"] = config_section.split("/")[1]
 
-            if channel > dmx_num_channels:
-                logging.warning("config item '%s' exceeds the maximum number of valid DMX channels: %d" %
-                                (key, dmx_num_channels))
-                continue
+            config_option_name = "server"
+            if config_option_name in list(dict(config_handler.items(config_section))):
+                osc_destination["server"] = config_handler.get(config_section, config_option_name)
+                logging.debug("Config: %s = %s" % ("%s.%s" %
+                                                   (config_section, config_option_name), osc_destination["server"]))
+            else:
+                do_error_exit("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
 
-            if valid_osc_commands.get(value) is None:
-                logging.warning("invalid OSC command '%s' for channel '%s'" % (value, channel))
-                continue
+            config_option_name = "port"
+            if config_option_name in list(dict(config_handler.items(config_section))):
+                osc_destination["port"] = config_handler.get(config_section, config_option_name)
+                logging.debug("Config: %s = %s" % ("%s.%s" %
+                                                   (config_section, config_option_name), osc_destination["port"]))
+            else:
+                do_error_exit("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
 
-            # take care of id 0 = channel 1
-            mapping[channel - 1] = value
+            for key, channel_osc_command in dict(config_handler.items(config_section)).items():
 
-    config_dict[this_section] = mapping
+                # skip expected config options
+                if key in ["server", "port"]:
+                    continue
+
+                if key.split("_")[0] != channel_prefix:
+                    logging.warning("config item '%s' starts with wrong prefix, expected: '%s'" % (key, channel_prefix))
+                    continue
+
+                try:
+                    channel_name = int(key.split("_")[1])
+                except ValueError:
+                    logging.warning(
+                        "config item '%s' channel must be int but '%s' given" % (key, str(key.split("_")[1])))
+                    continue
+
+                # i.e. channel 1 is represented with id 0 in DMX data and so on
+                channel_id = channel_name - 1
+
+                if channel_name == 0:
+                    logging.warning("channels in section '%s' need to start with 1" % config_section)
+                    continue
+
+                if channel_name > dmx_num_channels:
+                    logging.warning("config item '%s' exceeds the maximum number of valid DMX channels: %d" %
+                                    (key, dmx_num_channels))
+                    continue
+
+                if valid_osc_commands.get(channel_osc_command) is None:
+                    logging.warning("invalid OSC command '%s' for channel '%s'" % (channel_osc_command, channel_name))
+                    continue
+
+                # take care of id 0 = channel 1
+                if mapping.get(channel_id) is None:
+                    channel_destinations = [osc_destination]
+                else:
+                    if mapping.get(channel_id).get("command") != channel_osc_command:
+                        do_error_exit("channel definition mismatch between '%s' and '%s' for channel '%s'" %
+                                      (mapping.get(channel_id).get("destinations")[0].get("name"),
+                                       osc_destination.get("name"), channel_name))
+
+                    channel_destinations = mapping.get(channel_id).get("destinations")
+                    channel_destinations.append(osc_destination)
+
+                mapping[channel_id] = {"command": channel_osc_command, "destinations": channel_destinations}
+
+    for key, val in mapping.items():
+
+        if val is not None:
+            logging.debug("Config: channel %d, command: %s, destinations: %s"
+                          % (key + 1, val.get("command"), str([d['name'] for d in val.get("destinations")])))
+
+    config_dict["osc"] = mapping
 
     return config_dict
 
@@ -932,20 +961,20 @@ def send_dmx_to_osc(data):
 
     global last_dmx_block
 
-    if osc_handle is None:
-        do_error_exit("OSC connection not initialized. Exit")
-
     for dmx_channel_id, value in enumerate(data):
 
         # if value for channel is different from last blocks value then send an OSC message
         if value != last_dmx_block[dmx_channel_id]:
 
-            osc_command = config["dmx_to_osc"][dmx_channel_id]
+            osc_command_data = config["osc"][dmx_channel_id]
             dmx_channel_num = dmx_channel_id + 1
 
-            if osc_command is None:
+            if osc_command_data is None:
                 logging.error("Received value '%d' for undefined DMX channel '%d'" % (value, dmx_channel_num))
                 continue
+
+            osc_command = osc_command_data.get("command")
+            osc_command_destinations = osc_command_data.get("destinations")
 
             command_type = valid_osc_commands.get(osc_command).get("type")
 
@@ -953,7 +982,13 @@ def send_dmx_to_osc(data):
                 logging.warning("missing index type in 'valid_osc_commands' for '%s'" % osc_command)
                 continue
 
+            if osc_command_destinations is None:
+                logging.warning("missing destinations for '%s' on channel '%d'" % (osc_command, dmx_channel_num))
+                continue
+
             sent_value = value
+
+            command_translated = None
 
             if command_type == "range_0_127":
                 if value > 255:
@@ -962,57 +997,38 @@ def send_dmx_to_osc(data):
                 else:
                     sent_value = value / 2
 
-                log_text = "%s => %d (type: range) (DMX input: %d)" % (osc_command, sent_value, value)
-
             elif command_type == "bool/custom":
-                if value > 1:
-                    sent_value = 1
-
-                translated = "None" if sent_value == 0 else "Custom"
-
-                log_text = "%s => %d (translated: %s)(type: custom) (DMX input: %d)" % \
-                           (osc_command, sent_value, translated, value)
-
+                command_translated = "None" if sent_value == 0 else "Custom"
             elif command_type == "bool/none_smooth":
-                if value > 1:
-                    sent_value = 1
-
-                translated = "None" if sent_value == 0 else "Smooth"
-
-                log_text = "%s => %d (translated: %s)(type: smooth) (DMX input: %d)" % \
-                           (osc_command, sent_value, translated, value)
-
+                command_translated = "None" if sent_value == 0 else "Smooth"
             elif command_type == "bool/toggle":
-                if value > 1:
-                    sent_value = 1
-
-                translated = "Off" if sent_value == 0 else "On"
-
-                log_text = "%s => %d (translated: %s)(type: toggle) (DMX input: %d)" % \
-                           (osc_command, sent_value, translated, value)
-
+                command_translated = "Off" if sent_value == 0 else "On"
             elif command_type == "bool/trigger":
-                if value > 1:
-                    sent_value = 1
-
-                translated = "None" if sent_value == 0 else "Triggered"
-
-                log_text = "%s => %d (translated: %s)(type: trigger) (DMX input: %d)" % \
-                           (osc_command, sent_value, translated, value)
-
+                command_translated = "None" if sent_value == 0 else "Triggered"
             elif command_type == "int/value":
-
-                log_text = "%s => %d (type: value) (DMX input: %d)" % \
-                           (osc_command, sent_value, value)
-
+                pass
             else:
                 logging.warning("invalid OSC command type: %s" % command_type)
                 continue
 
-            logging.debug("Sending OSC command: %s" % log_text)
+            if command_type.startswith("bool"):
+                if value > 1:
+                    sent_value = 1
 
-            # send osc message
-            osc_handle.send_message(b'/%s' % osc_command, [sent_value])
+            log_text = "%s => %d" % (osc_command, sent_value)
+            if command_translated is not None:
+                log_text += " (%s)" % command_translated
+            log_text += " (type: %s) (DMX input: %d on %d)" % (command_type, value, dmx_channel_num)
+
+            # send osc message to all destinations
+            for destination in osc_command_destinations:
+                logging.debug("Sending OSC command: %s to %s" % (log_text, destination.get("name")))
+
+                try:
+                    send_osc_message(b'/%s' % osc_command,
+                                     [sent_value], destination.get("server"), int(destination.get("port")))
+                except Exception as e:
+                    logging.warning("Sending command to '%s' failed: %s" % (destination.get("name"), str(e)))
 
     last_dmx_block = data
 
@@ -1034,12 +1050,6 @@ if __name__ == "__main__":
 
     # parse config data
     config = parse_own_config(args.config_file)
-
-    # start OSC connection
-    try:
-        osc_handle = OSCClient(config["osc.server"], int(config["osc.port"]))
-    except Exception as error:
-        do_error_exit("Unable to connect to OSC server '%s': %s" % (config["osc.server"], str(error)))
 
     # register and run ola DMX client
     wrapper = ClientWrapper()

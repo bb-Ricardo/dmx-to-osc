@@ -14,7 +14,7 @@ from ola.ClientWrapper import ClientWrapper
 
 __version__ = "0.0.1"
 __version_date__ = "2019-07-23"
-__license__ = "MIT"
+__license__ = "GPLv3"
 __description__ = "script to receive dmx and send out osc commands to osc server"
 
 

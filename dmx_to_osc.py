@@ -938,9 +938,9 @@ def send_dmx_to_osc(data):
     for dmx_channel_id, value in enumerate(data):
 
         # if value for channel is different from last blocks value then send an OSC message
-        if value != last_dmx_block[channel]:
+        if value != last_dmx_block[dmx_channel_id]:
 
-            osc_command = config["dmx_to_osc"][channel]
+            osc_command = config["dmx_to_osc"][dmx_channel_id]
             dmx_channel_num = dmx_channel_id + 1
 
             if osc_command is None:

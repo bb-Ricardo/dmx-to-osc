@@ -29,8 +29,7 @@ __description__ = "script to receive dmx and send out osc commands to osc server
 dmx_num_channels = 512
 
 default_config_file_path = "./dmx_to_osc.ini"
-default_dmx_universe = 1
-default_osc_port = 7000
+default_dmx_universe = 0
 
 last_dmx_block = [0] * dmx_num_channels
 osc_handle = None
@@ -70,6 +69,8 @@ def parse_own_config(config_file):
     """
 
     config_dict = dict()
+
+    config_problem = False
 
     logging.debug("Parsing config file: %s" % config_file)
 
@@ -117,43 +118,59 @@ def parse_own_config(config_file):
             osc_destination = dict()
             osc_destination["name"] = config_section.split("/")[1]
 
+            section_config_options = list(dict(config_handler.items(config_section)))
+
+            if "enabled" in section_config_options:
+                if config_handler.get(config_section, "enabled").strip() == "0":
+                    logging.info("config section '%s' is disabled and will be skipped" % config_section)
+                    continue
+
             config_option_name = "server"
-            if config_option_name in list(dict(config_handler.items(config_section))):
+            if config_option_name in section_config_options:
                 osc_destination[config_option_name] = config_handler.get(config_section, config_option_name).strip()
                 if len(osc_destination[config_option_name]) == 0:
-                    do_error_exit("option '%s' empty for OSC destination '%s'"
+                    config_problem = True
+                    logging.error("option '%s' empty for OSC destination '%s'"
                                   % (config_option_name, osc_destination["name"]))
-                logging.debug("Config: %s = %s" % ("%s.%s" %
-                                    (config_section, config_option_name), osc_destination[config_option_name]))
+                logging.debug("Config: %s = %s" %
+                              ("%s.%s" % (config_section, config_option_name), osc_destination[config_option_name]))
             else:
-                do_error_exit("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
+                config_problem = True
+                logging.error("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
 
             config_option_name = "port"
-            if config_option_name in list(dict(config_handler.items(config_section))):
+            if config_option_name in section_config_options:
                 osc_destination[config_option_name] = config_handler.get(config_section, config_option_name).strip()
                 if len(osc_destination[config_option_name]) == 0:
-                    do_error_exit("option '%s' empty for OSC destination '%s'"
+                    config_problem = True
+                    logging.error("option '%s' empty for OSC destination '%s'"
                                   % (config_option_name, osc_destination["name"]))
-                logging.debug("Config: %s = %s" % ("%s.%s" %
-                                    (config_section, config_option_name), osc_destination[config_option_name]))
+                logging.debug("Config: %s = %s" %
+                              ("%s.%s" % (config_section, config_option_name), osc_destination[config_option_name]))
             else:
-                do_error_exit("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
+                config_problem = True
+                logging.error("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
+
+            # store port as int to save type casting on every message sent
+            osc_destination[config_option_name] = int(osc_destination[config_option_name])
 
             for key, channel_osc_command in dict(config_handler.items(config_section)).items():
 
                 channel_osc_command = channel_osc_command.strip()
 
                 # skip expected config options
-                if key in ["server", "port"]:
+                if key in ["server", "port", "enabled"]:
                     continue
 
                 if key.split("_")[0] != channel_prefix:
+                    config_problem = True
                     logging.warning("config item '%s' starts with wrong prefix, expected: '%s'" % (key, channel_prefix))
                     continue
 
                 try:
                     channel_name = int(key.split("_")[1])
                 except ValueError:
+                    config_problem = True
                     logging.warning(
                         "config item '%s' channel must be int but '%s' given" % (key, str(key.split("_")[1])))
                     continue
@@ -162,10 +179,12 @@ def parse_own_config(config_file):
                 channel_id = channel_name - 1
 
                 if channel_name == 0:
+                    config_problem = True
                     logging.warning("channels in section '%s' need to start with 1" % config_section)
                     continue
 
                 if channel_name > dmx_num_channels:
+                    config_problem = True
                     logging.warning("config item '%s' exceeds the maximum number of valid DMX channels: %d" %
                                     (key, dmx_num_channels))
                     continue
@@ -174,18 +193,21 @@ def parse_own_config(config_file):
                 command_and_type = channel_osc_command.split(":")
 
                 if len(command_and_type) == 1:
+                    config_problem = True
                     logging.warning("missing OSC command type for command '%s' for channel '%s'"
                                     % (command_and_type[0], channel_name))
                     continue
 
                 command_type = command_and_type[1]
                 if command_type not in ["value", "trigger", "toggle", "range"]:
+                    config_problem = True
                     logging.warning("invalid OSC command type '%s' for command '%s' for channel '%s'"
                                     % (command_and_type[0], command_and_type[0], channel_name))
                     continue
 
                 if command_type == "range":
                     if len(command_and_type) != 4:
+                        config_problem = True
                         logging.warning(
                             "wrong format '%s' for OSC command type 'range' for command '%s' for channel '%s'"
                             % (channel_osc_command, command_and_type[0], channel_name))
@@ -194,6 +216,7 @@ def parse_own_config(config_file):
                         int(command_and_type[2])
                         int(command_and_type[3])
                     except ValueError:
+                        config_problem = True
                         logging.warning(
                             "command type 'range' start and end for channel '%s' must be int, got '%s:%s'" %
                             (channel_name, str(command_and_type[2]), str(command_and_type[3])))
@@ -204,7 +227,8 @@ def parse_own_config(config_file):
                     channel_destinations = [osc_destination]
                 else:
                     if mapping.get(channel_id).get("command") != channel_osc_command:
-                        do_error_exit("channel definition mismatch between '%s' and '%s' for channel '%s'" %
+                        config_problem = True
+                        logging.error("channel definition mismatch between '%s' and '%s' for channel '%s'" %
                                       (mapping.get(channel_id).get("destinations")[0].get("name"),
                                        osc_destination.get("name"), channel_name))
 
@@ -212,6 +236,9 @@ def parse_own_config(config_file):
                     channel_destinations.append(osc_destination)
 
                 mapping[channel_id] = {"command": channel_osc_command, "destinations": channel_destinations}
+
+    if config_problem is True:
+        do_error_exit("found config problems during parsing. Exit")
 
     for key, val in mapping.items():
 
@@ -319,7 +346,7 @@ def send_dmx_to_osc(data):
 
                 try:
                     send_osc_message(b'%s' % osc_command_name,
-                                     [value_to_send], destination.get("server"), int(destination.get("port")))
+                                     [value_to_send], destination.get("server"), destination.get("port"))
                 except Exception as e:
                     logging.warning("Sending command to '%s' failed: %s" % (destination.get("name"), str(e)))
 

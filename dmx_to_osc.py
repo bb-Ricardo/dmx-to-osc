@@ -7,6 +7,7 @@
 import argparse
 import ConfigParser
 import logging
+import time
 
 # 3rd party modules
 from oscpy.client import send_message as send_osc_message
@@ -17,8 +18,8 @@ try:
 except ImportError:
     ola_present = False
 
-__version__ = "0.0.2"
-__version_date__ = "2019-07-24"
+__version__ = "0.0.3"
+__version_date__ = "2019-07-26"
 __license__ = "GPLv3"
 __description__ = "script to receive dmx and send out osc commands to osc server"
 
@@ -32,6 +33,7 @@ default_config_file_path = "./dmx_to_osc.ini"
 default_dmx_universe = 0
 
 last_dmx_block = [0] * dmx_num_channels
+last_run_ts = None
 osc_handle = None
 
 
@@ -52,6 +54,8 @@ def parse_command_line():
                         metavar="dmx_to_osc.ini")
     parser.add_argument("-v", "--verbose",  action='store_true',
                         help="be verbose and print debug information")
+    parser.add_argument("--profile", action='store_true',
+                        help="display current FPS of DMX frames")
 
     return parser.parse_args()
 
@@ -273,7 +277,12 @@ def send_dmx_to_osc(data):
         data array with a length of 512 items
     """
 
-    global last_dmx_block
+    global last_dmx_block, last_run_ts
+
+    if args.profile is True and last_run_ts is not None:
+        print("FPS: %0.2f" % (1.0 / (time.time() - last_run_ts)))
+
+    last_run_ts = time.time()
 
     for dmx_channel_id, value in enumerate(data):
 

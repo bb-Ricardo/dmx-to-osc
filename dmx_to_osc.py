@@ -35,757 +35,6 @@ default_osc_port = 7000
 last_dmx_block = [0] * dmx_num_channels
 osc_handle = None
 
-valid_osc_commands = {
-    "/SelectGroup": {
-        "type": "int/value",
-        "description": "Select group in (n)th position from the bottom of the layer list"
-    },
-    "/SelectGroup1": {
-        "type": "bool/trigger",
-        "description": "Select the group at the bottom of the layer list"
-    },
-    "/SelectGroup2": {
-        "type": "bool/trigger",
-        "description": "Select the group in second position from the bottom of the layer list"
-    },
-    "/SelectGroup3": {
-        "type": "bool/trigger",
-        "description": "Select the group in third position from the bottom of the layer list"
-    },
-    "/SelectGroup4": {
-        "type": "bool/trigger",
-        "description": "Select the group in fourth position from the bottom of the layer list"
-    },
-    "/SelectGroup5": {
-        "type": "bool/trigger",
-        "description": "Select the group in fifth position from the bottom of the layer list"
-    },
-    "/SelectGroup6": {
-        "type": "bool/trigger",
-        "description": "Select the group in sixth position from the bottom of the layer list"
-    },
-    "/SelectGroup7": {
-        "type": "bool/trigger",
-        "description": "Select the group in seventh position from the bottom of the layer list"
-    },
-    "/SelectGroup8": {
-        "type": "bool/trigger",
-        "description": "Select the group in eighth position from the bottom of the layer list"
-    },
-    "/SelectGroup9": {
-        "type": "bool/trigger",
-        "description": "Select the group in ninth position from the bottom of the layer list"
-    },
-    "/SelectGroup10": {
-        "type": "bool/trigger",
-        "description": "Select the group in tenth position from the bottom of the layer list"
-    },
-    "/changeSeq": {
-        "type": "int/value",
-        "description": "Select sequence"
-    },
-    "/SeqControlPlay": {
-        "type": "bool/trigger",
-        "description": "Play/Pause timeline"
-    },
-    "/SeqControlPrevious": {
-        "type": "bool/trigger",
-        "description": "Select previous sequence / Restart current sequence if playback is on"
-    },
-    "/SeqControlNext": {
-        "type": "bool/trigger",
-        "description": "Next sequence"
-    },
-    "/SeqControlStop": {
-        "type": "bool/trigger",
-        "description": "Stop playback"
-    },
-    "/SeqControlShuffle": {
-        "type": "bool/toggle",
-        "description": "Toggle random sequence playback"
-    },
-    "/SeqControlAdd": {
-        "type": "bool/trigger",
-        "description": "Add sequence"
-    },
-    "/SeqControlDelete": {
-        "type": "bool/trigger",
-        "description": "Delete selected sequence"
-    },
-    "/Tempo": {
-        "type": "int/value",
-        "description": "Change BPM value"
-    },
-    "/TapTempo": {
-        "type": "bool/trigger",
-        "description": "Trigger TAP module"
-    },
-    "/PlayerPlayPause/idPlayer": {
-        "type": "int/value",
-        "description": "Play/Pause player"
-    },
-    "/PlayAllPlayers": {
-        "type": "bool/trigger",
-        "description": "Play all players in sequence"
-    },
-    "/PauseAllPlayers": {
-        "type": "bool/trigger",
-        "description": "Pause all players in sequence"
-    },
-    "/StopAllPlayers": {
-        "type": "bool/trigger",
-        "description": "Stop all players in sequence"
-    },
-    "/BorderActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/BorderMode": {
-        "type": "bool/trigger",
-        "description": "Switch mode"
-    },
-    "/BorderColor": {
-        "type": "range_0_127",
-        "description": "Change color"
-    },
-    "/BorderWidth": {
-        "type": "range_0_127",
-        "description": "Change thickness value"
-    },
-    "/BorderSpeed": {
-        "type": "range_0_127",
-        "description": "Change speed value"
-    },
-    "/BorderPhase": {
-        "type": "range_0_127",
-        "description": "Change phase value"
-    },
-    "/LineActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/LineMode": {
-        "type": "bool/trigger",
-        "description": "Switch mode"
-    },
-    "/LineColor": {
-        "type": "range_0_127",
-        "description": "Change color"
-    },
-    "/LineWidth": {
-        "type": "range_0_127",
-        "description": "Change thickness value"
-    },
-    "/LineLength": {
-        "type": "range_0_127",
-        "description": "Change length value"
-    },
-    "/LineNumber": {
-        "type": "range_0_127",
-        "description": "Change number of dashes"
-    },
-    "/LineSpeed": {
-        "type": "range_0_127",
-        "description": "Change speed value"
-    },
-    "/LinePhase": {
-        "type": "range_0_127",
-        "description": "Change phase value"
-    },
-    "/LineDirection": {
-        "type": "bool/trigger",
-        "description": "Switch direction"
-    },
-    "/RepeatActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/RepeatNumber": {
-        "type": "range_0_127",
-        "description": "Change number of duplications"
-    },
-    "/RepeatDepth": {
-        "type": "range_0_127",
-        "description": "Change depth value"
-    },
-    "/RepeatCenter": {
-        "type": "bool/custom",
-        "description": "Toggle origin"
-    },
-    "/FillColorActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/FillColorNormalActivated": {
-        "type": "bool/trigger",
-        "description": "Select Plain Color mode"
-    },
-    "/FillColorNormal": {
-        "type": "range_0_127",
-        "description": "Change Plain color"
-    },
-    "/FillColorGradientActivated": {
-        "type": "bool/trigger",
-        "description": "Select Gradient mode"
-    },
-    "/FillColorGradient1": {
-        "type": "range_0_127",
-        "description": "Change Gradient color 1"
-    },
-    "/FillColorGradient2": {
-        "type": "range_0_127",
-        "description": "Change Gradient color 2"
-    },
-    "/FillColorGradientMode": {
-        "type": "bool/trigger",
-        "description": "Switch Gradient motion mode"
-    },
-    "/FillColorGradientDirection": {
-        "type": "range_0_127",
-        "description": "Change angle for Gradient direction 1"
-    },
-    "/FillColorGradientDirection2": {
-        "type": "range_0_127",
-        "description": "Change angle for Gradient direction 2"
-    },
-    "/FillColorGradientSpeed": {
-        "type": "range_0_127",
-        "description": "Change Gradient speed value"
-    },
-    "/FillColorGradientPhase": {
-        "type": "range_0_127",
-        "description": "Change Gradient phase value"
-    },
-    "/FillColorRandomActivated": {
-        "type": "bool/trigger",
-        "description": "Select Random mode"
-    },
-    "/FillColorRandom1": {
-        "type": "range_0_127",
-        "description": "Change Random color 1"
-    },
-    "/FillColorRandom2": {
-        "type": "range_0_127",
-        "description": "Change Random color 2"
-    },
-    "/FillColorRandom3": {
-        "type": "range_0_127",
-        "description": "Change Random color 3"
-    },
-    "/FillColorRandom4": {
-        "type": "range_0_127",
-        "description": "Change Random color 4"
-    },
-    "/FillColorRandom5": {
-        "type": "range_0_127",
-        "description": "Change Random color 5"
-    },
-    "/FillColorRandomWeight1": {
-        "type": "range_0_127",
-        "description": "Change weight of Random color 1"
-    },
-    "/FillColorRandomWeight2": {
-        "type": "range_0_127",
-        "description": "Change weight of Random color 2"
-    },
-    "/FillColorRandomWeight3": {
-        "type": "range_0_127",
-        "description": "Change weight of Random color 3"
-    },
-    "/FillColorRandomWeight4": {
-        "type": "range_0_127",
-        "description": "Change weight of Random color 4"
-    },
-    "/FillColorRandomWeight5": {
-        "type": "range_0_127",
-        "description": "Change weight of Random color 5"
-    },
-    "/FillColorRandomMode": {
-        "type": "bool/trigger",
-        "description": "Switch Random shuffle mode"
-    },
-    "/FillColorRandomTempo": {
-        "type": "range_0_127",
-        "description": "Change Random speed/tempo value"
-    },
-    "/FillColorRandomTransition": {
-        "type": "bool/none_smooth",
-        "description": "Toggle Random transition mode"
-    },
-    "/FillSpecialActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/FillSpecialSwipeSolo": {
-        "type": "bool/trigger",
-        "description": "Select Swipe (solo) mode"
-    },
-    "/FillSpecialInside": {
-        "type": "bool/trigger",
-        "description": "Select Inside mode"
-    },
-    "/FillSpecialOutside": {
-        "type": "bool/trigger",
-        "description": "Select Outside mode"
-    },
-    "/FillSpecialCorner": {
-        "type": "bool/trigger",
-        "description": "Select Corner mode"
-    },
-    "/FillSpecialStairs": {
-        "type": "bool/trigger",
-        "description": "Select Stairs mode"
-    },
-    "/FillSpecialSwipeGlobal": {
-        "type": "bool/trigger",
-        "description": "Select Swipe (global) mode"
-    },
-    "/FillSpecialHypnotic": {
-        "type": "bool/trigger",
-        "description": "Select Hypnotic mode"
-    },
-    "/FillSpecialStripes": {
-        "type": "bool/trigger",
-        "description": "Select Stripes mode"
-    },
-    "/FillSpecialDoubleStripes": {
-        "type": "bool/trigger",
-        "description": "Select Double Stripes mode"
-    },
-    "/FillSpecialMosaic": {
-        "type": "bool/trigger",
-        "description": "Select Mosaic mode"
-    },
-    "/FillSpecialColor": {
-        "type": "range_0_127",
-        "description": "Change color"
-    },
-    "/FillSpecialValue": {
-        "type": "range_0_127",
-        "description": "Change fill percentage"
-    },
-    "/FillSpecialSpeed": {
-        "type": "range_0_127",
-        "description": "Change speed value"
-    },
-    "/FillSpecialPhase": {
-        "type": "range_0_127",
-        "description": "Change phase value"
-    },
-    "/FillSpecialSizeStripes": {
-        "type": "range_0_127",
-        "description": "Change stripes width"
-    },
-    "/FillSpecialSizeStripes2": {
-        "type": "range_0_127",
-        "description": "Change second stripes width"
-    },
-    "/FillSpecialDirection": {
-        "type": "range_0_127",
-        "description": "Change direction 1 angle"
-    },
-    "/FillSpecialDirection2": {
-        "type": "range_0_127",
-        "description": "Change direction 2 angle"
-    },
-    "/FillSpecialCenter": {
-        "type": "bool/custom",
-        "description": "Toggle origin"
-    },
-    "/FillSnakeActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/FillSnakeApplyColor": {
-        "type": "bool/toggle",
-        "description": "Apply/don't apply Snake on Color"
-    },
-    "/FillSnakeApplySpecial": {
-        "type": "bool/toggle",
-        "description": "Apply/don't apply Snake on Special"
-    },
-    "/FillSnakeDirection": {
-        "type": "bool/trigger",
-        "description": "Switch direction"
-    },
-    "/FillSnakeSize": {
-        "type": "range_0_127",
-        "description": "Change number of parts"
-    },
-    "/FillSnakeSpeed": {
-        "type": "range_0_127",
-        "description": "Change speed value"
-    },
-    "/RotationActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/RotationX": {
-        "type": "bool/toggle",
-        "description": "Check/uncheck X axis"
-    },
-    "/RotationY": {
-        "type": "bool/toggle",
-        "description": "Check/uncheck Y axis"
-    },
-    "/RotationZ": {
-        "type": "bool/toggle",
-        "description": "Check/uncheck Z axis"
-    },
-    "/RotationCenter": {
-        "type": "bool/custom",
-        "description": "Toggle origin"
-    },
-    "/RotationDirection": {
-        "type": "bool/trigger",
-        "description": "Switch direction"
-    },
-    "/RotationSpeed": {
-        "type": "range_0_127",
-        "description": "Change speed value"
-    },
-    "/RotationPhase": {
-        "type": "range_0_127",
-        "description": "Change phase value"
-    },
-    "/StructureActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/StructureRadialGlow": {
-        "type": "bool/trigger",
-        "description": "Select Radial Glow mode"
-    },
-    "/StructureWireframe": {
-        "type": "bool/trigger",
-        "description": "Select Wire Frame mode"
-    },
-    "/StructureOrigami": {
-        "type": "bool/trigger",
-        "description": "Select Origami mode"
-    },
-    "/StructureRoundTrip": {
-        "type": "bool/trigger",
-        "description": "Select Round Trip mode"
-    },
-    "/StructureElasticPosition": {
-        "type": "bool/trigger",
-        "description": "Select Elastic Position mode"
-    },
-    "/StructureElasticRotation": {
-        "type": "bool/trigger",
-        "description": "Select Elastic Rotation mode"
-    },
-    "/StructureElasticScale": {
-        "type": "bool/trigger",
-        "description": "Select Elastic Scale mode"
-    },
-    "/StructureStrokes": {
-        "type": "bool/trigger",
-        "description": "Select Strokes mode"
-    },
-    "/StructureColor": {
-        "type": "range_0_127",
-        "description": "Change color"
-    },
-    "/StructureWidth": {
-        "type": "range_0_127",
-        "description": "Change thickness value"
-    },
-    "/StructureDepth": {
-        "type": "range_0_127",
-        "description": "Change depth value"
-    },
-    "/StructureSpeed": {
-        "type": "range_0_127",
-        "description": "Change speed value"
-    },
-    "/StructurePhase": {
-        "type": "range_0_127",
-        "description": "Change phase value"
-    },
-    "/StructureNumber": {
-        "type": "range_0_127",
-        "description": "Change instances number"
-    },
-    "/StructureMultiplier": {
-        "type": "range_0_127",
-        "description": "Change instances multiplier"
-    },
-    "/StructureInsidePhase": {
-        "type": "range_0_127",
-        "description": "Change inner offset value"
-    },
-    "/StructureCenter": {
-        "type": "bool/custom",
-        "description": "Toggle origin"
-    },
-    "/StructureDirection": {
-        "type": "bool/trigger",
-        "description": "Switch direction"
-    },
-    "/StructureSplitEllipse": {
-        "type": "range_0_127",
-        "description": "Number of segments for ellipses"
-    },
-    "/StartTActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/StartTSwipe": {
-        "type": "bool/trigger",
-        "description": "Select Swipe mode"
-    },
-    "/StartTInside": {
-        "type": "bool/trigger",
-        "description": "Select Inside mode"
-    },
-    "/StartTOutside": {
-        "type": "bool/trigger",
-        "description": "Select Outside mode"
-    },
-    "/StartTCorner": {
-        "type": "bool/trigger",
-        "description": "Select Corner mode"
-    },
-    "/StartTStairs": {
-        "type": "bool/trigger",
-        "description": "Select Stairs mode"
-    },
-    "/StartTFade": {
-        "type": "bool/trigger",
-        "description": "Select Fade mode"
-    },
-    "/StartTBlinds": {
-        "type": "bool/trigger",
-        "description": "Select Blinds mode"
-    },
-    "/StartTFalls": {
-        "type": "bool/trigger",
-        "description": "Select Falls mode"
-    },
-    "/StartTDirection": {
-        "type": "range_0_127",
-        "description": "Change direction angle"
-    },
-    "/StartTOrientation": {
-        "type": "bool/trigger",
-        "description": "Switch direction (left-right)"
-    },
-    "/StartTUpperLeft": {
-        "type": "bool/trigger",
-        "description": "Select upper left origin"
-    },
-    "/StartTUpperRight": {
-        "type": "bool/trigger",
-        "description": "Select upper right origin"
-    },
-    "/StartTCenter": {
-        "type": "bool/trigger",
-        "description": "Select center origin"
-    },
-    "/StartTBottomLeft": {
-        "type": "bool/trigger",
-        "description": "Select bottom left origin"
-    },
-    "/StartTBottomRight": {
-        "type": "bool/trigger",
-        "description": "Select bottom right origin"
-    },
-    "/EndTActivated": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF"
-    },
-    "/EndTSwipe": {
-        "type": "bool/trigger",
-        "description": "Select Swipe mode"
-    },
-    "/EndTInside": {
-        "type": "bool/trigger",
-        "description": "Select Inside mode"
-    },
-    "/EndTOutside": {
-        "type": "bool/trigger",
-        "description": "Select Outside mode"
-    },
-    "/EndTCorner": {
-        "type": "bool/trigger",
-        "description": "Select Corner mode"
-    },
-    "/EndTStairs": {
-        "type": "bool/trigger",
-        "description": "Select Stairs mode"
-    },
-    "/EndTFade": {
-        "type": "bool/trigger",
-        "description": "Select Fade mode"
-    },
-    "/EndTBlinds": {
-        "type": "bool/trigger",
-        "description": "Select Blinds mode"
-    },
-    "/EndTFalls": {
-        "type": "bool/trigger",
-        "description": "Select Falls mode"
-    },
-    "/EndTDirection": {
-        "type": "range_0_127",
-        "description": "Change direction angle"
-    },
-    "/EndTOrientation": {
-        "type": "bool/trigger",
-        "description": "Switch direction (left-right)"
-    },
-    "/EndTUpperLeft": {
-        "type": "bool/trigger",
-        "description": "Select upper left origin"
-    },
-    "/EndTUpperRight": {
-        "type": "bool/trigger",
-        "description": "Select upper right origin"
-    },
-    "/EndTCenter": {
-        "type": "bool/trigger",
-        "description": "Select center origin"
-    },
-    "/EndTBottomLeft": {
-        "type": "bool/trigger",
-        "description": "Select bottom left origin"
-    },
-    "/EndTBottomRight": {
-        "type": "bool/trigger",
-        "description": "Select bottom right origin"
-    },
-    "/ShaderBlackWhiteActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Black & White)"
-    },
-    "/ShaderBlackWhite": {
-        "type": "range_0_127",
-        "description": "Change value (Black & White)"
-    },
-    "/ShaderBlueActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Blue)"
-    },
-    "/ShaderBlue": {
-        "type": "range_0_127",
-        "description": "Change value (Blue)"
-    },
-    "/ShaderBlurActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Blur)"
-    },
-    "/ShaderBlur": {
-        "type": "range_0_127",
-        "description": "Change value (Blur)"
-    },
-    "/ShaderContrasteActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Contrast)"
-    },
-    "/ShaderContraste": {
-        "type": "range_0_127",
-        "description": "Change value (Contrast)"
-    },
-    "/ShaderConvergenceActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Convergence)"
-    },
-    "/ShaderConvergence": {
-        "type": "range_0_127",
-        "description": "Change value (Convergence)"
-    },
-    "/ShaderCutSliderActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Cut Slider)"
-    },
-    "/ShaderCutSlider": {
-        "type": "range_0_127",
-        "description": "Change value (Cut Slider)"
-    },
-    "/ShaderGlowActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Glow)"
-    },
-    "/ShaderGlow": {
-        "type": "range_0_127",
-        "description": "Change value (Glow)"
-    },
-    "/ShaderGreenActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Green)"
-    },
-    "/ShaderGreen": {
-        "type": "range_0_127",
-        "description": "Change value (Green)"
-    },
-    "/ShaderNoiseActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Noise)"
-    },
-    "/ShaderNoise": {
-        "type": "range_0_127",
-        "description": "Change value (Noise)"
-    },
-    "/ShaderOldTVActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Old TV)"
-    },
-    "/ShaderOldTV": {
-        "type": "range_0_127",
-        "description": "Change value (Old TV)"
-    },
-    "/ShaderRedActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Red)"
-    },
-    "/ShaderRed": {
-        "type": "range_0_127",
-        "description": "Change value (Red)"
-    },
-    "/ShaderShakerActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Shaker)"
-    },
-    "/ShaderShaker": {
-        "type": "range_0_127",
-        "description": "Change value (Shaker)"
-    },
-    "/ShaderStrobeActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Strobe)"
-    },
-    "/ShaderStrobe": {
-        "type": "range_0_127",
-        "description": "Change value (Strobe)"
-    },
-    "/ShaderSlitScanActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (SlitScan)"
-    },
-    "/ShaderSlitScan": {
-        "type": "range_0_127",
-        "description": "Change value (SlitScan)"
-    },
-    "/ShaderSwellActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Swell)"
-    },
-    "/ShaderSwell": {
-        "type": "range_0_127",
-        "description": "Change value (Swell)"
-    },
-    "/ShaderTwistActivate": {
-        "type": "bool/toggle",
-        "description": "Toggle ON/OFF (Twist)"
-    },
-    "/ShaderTwist": {
-        "type": "range_0_127",
-        "description": "Change value (Twist)"
-    }
-}
-
 
 def parse_command_line():
     """parse command line arguments
@@ -870,21 +119,29 @@ def parse_own_config(config_file):
 
             config_option_name = "server"
             if config_option_name in list(dict(config_handler.items(config_section))):
-                osc_destination["server"] = config_handler.get(config_section, config_option_name)
+                osc_destination[config_option_name] = config_handler.get(config_section, config_option_name).strip()
+                if len(osc_destination[config_option_name]) == 0:
+                    do_error_exit("option '%s' empty for OSC destination '%s'"
+                                  % (config_option_name, osc_destination["name"]))
                 logging.debug("Config: %s = %s" % ("%s.%s" %
-                                                   (config_section, config_option_name), osc_destination["server"]))
+                                    (config_section, config_option_name), osc_destination[config_option_name]))
             else:
                 do_error_exit("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
 
             config_option_name = "port"
             if config_option_name in list(dict(config_handler.items(config_section))):
-                osc_destination["port"] = config_handler.get(config_section, config_option_name)
+                osc_destination[config_option_name] = config_handler.get(config_section, config_option_name).strip()
+                if len(osc_destination[config_option_name]) == 0:
+                    do_error_exit("option '%s' empty for OSC destination '%s'"
+                                  % (config_option_name, osc_destination["name"]))
                 logging.debug("Config: %s = %s" % ("%s.%s" %
-                                                   (config_section, config_option_name), osc_destination["port"]))
+                                    (config_section, config_option_name), osc_destination[config_option_name]))
             else:
                 do_error_exit("Option '%s' missing in config section '%s'" % (config_option_name, config_section))
 
             for key, channel_osc_command in dict(config_handler.items(config_section)).items():
+
+                channel_osc_command = channel_osc_command.strip()
 
                 # skip expected config options
                 if key in ["server", "port"]:
@@ -913,11 +170,36 @@ def parse_own_config(config_file):
                                     (key, dmx_num_channels))
                     continue
 
-                if valid_osc_commands.get(channel_osc_command) is None:
-                    logging.warning("invalid OSC command '%s' for channel '%s'" % (channel_osc_command, channel_name))
+                # check command and type
+                command_and_type = channel_osc_command.split(":")
+
+                if len(command_and_type) == 1:
+                    logging.warning("missing OSC command type for command '%s' for channel '%s'"
+                                    % (command_and_type[0], channel_name))
                     continue
 
-                # take care of id 0 = channel 1
+                command_type = command_and_type[1]
+                if command_type not in ["value", "trigger", "toggle", "range"]:
+                    logging.warning("invalid OSC command type '%s' for command '%s' for channel '%s'"
+                                    % (command_and_type[0], command_and_type[0], channel_name))
+                    continue
+
+                if command_type == "range":
+                    if len(command_and_type) != 4:
+                        logging.warning(
+                            "wrong format '%s' for OSC command type 'range' for command '%s' for channel '%s'"
+                            % (channel_osc_command, command_and_type[0], channel_name))
+                        continue
+                    try:
+                        int(command_and_type[2])
+                        int(command_and_type[3])
+                    except ValueError:
+                        logging.warning(
+                            "command type 'range' start and end for channel '%s' must be int, got '%s:%s'" %
+                            (channel_name, str(command_and_type[2]), str(command_and_type[3])))
+                        continue
+
+                # add command to mapping
                 if mapping.get(channel_id) is None:
                     channel_destinations = [osc_destination]
                 else:
@@ -978,60 +260,66 @@ def send_dmx_to_osc(data):
                 logging.error("Received value '%d' for undefined DMX channel '%d'" % (value, dmx_channel_num))
                 continue
 
-            osc_command = osc_command_data.get("command")
             osc_command_destinations = osc_command_data.get("destinations")
-
-            command_type = valid_osc_commands.get(osc_command).get("type")
-
-            if command_type is None:
-                logging.warning("missing index type in 'valid_osc_commands' for '%s'" % osc_command)
-                continue
 
             if osc_command_destinations is None:
                 logging.warning("missing destinations for '%s' on channel '%d'" % (osc_command, dmx_channel_num))
                 continue
 
-            sent_value = value
+            # check command and type
+            osc_command_and_type = osc_command_data.get("command").split(":")
+            osc_command_name = osc_command_and_type[0]
+            osc_command_type = osc_command_and_type[1]
+
+            value_to_send = value
+
+            if value > 255:
+                logging.warning("submitted DMX value for channel '%s' out of range: %d " % (dmx_channel_num, value))
+                value_to_send = 255
+
+            if value < 0:
+                logging.warning("submitted DMX value for channel '%s' out of range: %d " % (dmx_channel_num, value))
+                value_to_send = 0
 
             command_translated = None
 
-            if command_type == "range_0_127":
-                if value > 255:
-                    logging.warning("submitted DMX value for channel '%s' out of range: %d " % (dmx_channel_num, value))
-                    sent_value = 127
-                else:
-                    sent_value = value / 2
+            # calculate value to send according range span
+            if osc_command_type == "range":
+                dmx_span = 256
+                range_min = int(osc_command_and_type[2])
+                range_max = int(osc_command_and_type[3])
+                range_span = range_max - range_min + 1
 
-            elif command_type == "bool/custom":
-                command_translated = "None" if sent_value == 0 else "Custom"
-            elif command_type == "bool/none_smooth":
-                command_translated = "None" if sent_value == 0 else "Smooth"
-            elif command_type == "bool/toggle":
-                command_translated = "Off" if sent_value == 0 else "On"
-            elif command_type == "bool/trigger":
-                command_translated = "None" if sent_value == 0 else "Triggered"
-            elif command_type == "int/value":
+                value_to_send = int(range_min + (float(float(range_span) / float(dmx_span)) * float(value_to_send)))
+
+            elif osc_command_type == "toggle":
+                command_translated = "Off" if value_to_send == 0 else "On"
+            elif osc_command_type == "trigger":
+                command_translated = "None" if value_to_send == 0 else "Triggered"
+            elif osc_command_type == "value":
                 pass
             else:
-                logging.warning("invalid OSC command type: %s" % command_type)
+                logging.warning("invalid OSC command type: %s" % osc_command_type)
                 continue
 
-            if command_type.startswith("bool"):
+            # take care of bool types
+            if osc_command_type in ["trigger", "toggle"]:
                 if value > 1:
-                    sent_value = 1
+                    value_to_send = 1
 
-            log_text = "%s => %d" % (osc_command, sent_value)
+            # assemble log text
+            log_text = "%s => %d" % (osc_command_name, value_to_send)
             if command_translated is not None:
                 log_text += " (%s)" % command_translated
-            log_text += " (type: %s) (DMX input: %d on %d)" % (command_type, value, dmx_channel_num)
+            log_text += " (type: %s) (DMX input: %d on %d)" % (osc_command_type, value, dmx_channel_num)
 
             # send osc message to all destinations
             for destination in osc_command_destinations:
                 logging.debug("Sending OSC command: %s to %s" % (log_text, destination.get("name")))
 
                 try:
-                    send_osc_message(b'%s' % osc_command,
-                                     [sent_value], destination.get("server"), int(destination.get("port")))
+                    send_osc_message(b'%s' % osc_command_name,
+                                     [value_to_send], destination.get("server"), int(destination.get("port")))
                 except Exception as e:
                     logging.warning("Sending command to '%s' failed: %s" % (destination.get("name"), str(e)))
 

@@ -4,8 +4,12 @@
 #   imports
 
 # standard modules
+try:
+    import configparser as configparser
+except ImportError:
+    import ConfigParser as configparser
+
 import argparse
-import ConfigParser
 import logging
 import time
 
@@ -82,7 +86,7 @@ def parse_own_config(config_file):
         do_error_exit("Config file not defined.")
 
     # setup config parser and read config
-    config_handler = ConfigParser.SafeConfigParser()
+    config_handler = configparser.SafeConfigParser()
 
     try:
         config_handler.read(config_file)
@@ -354,7 +358,7 @@ def send_dmx_to_osc(data):
                 logging.debug("Sending OSC command: %s to %s" % (log_text, destination.get("name")))
 
                 try:
-                    send_osc_message(b'%s' % osc_command_name,
+                    send_osc_message(b'%s' % osc_command_name.encode(),
                                      [value_to_send], destination.get("server"), destination.get("port"))
                 except Exception as e:
                     logging.warning("Sending command to '%s' failed: %s" % (destination.get("name"), str(e)))

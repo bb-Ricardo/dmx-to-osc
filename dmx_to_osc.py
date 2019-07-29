@@ -4,6 +4,9 @@
 #   imports
 
 # standard modules
+from socket import (socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST)
+from struct import pack, unpack
+import array
 try:
     import configparser as configparser
 except ImportError:
@@ -16,11 +19,12 @@ import time
 # 3rd party modules
 from oscpy.client import send_message as send_osc_message
 
-ola_present = True
+ola_module_present = True
 try:
     from ola.ClientWrapper import ClientWrapper
 except ImportError:
-    ola_present = False
+    ola_module_present = False
+
 
 __version__ = "0.0.3"
 __version_date__ = "2019-07-26"
@@ -31,6 +35,9 @@ __description__ = "script to receive dmx and send out osc commands to osc server
 #################
 #   default and internal vars
 
+artnet_udp_port = 6454
+ArtDmxPackage = 0x0050
+
 dmx_num_channels = 512
 
 default_config_file_path = "./dmx_to_osc.ini"
@@ -39,6 +46,52 @@ default_dmx_universe = 0
 last_dmx_block = [0] * dmx_num_channels
 last_run_ts = None
 osc_handle = None
+
+
+class ArtnetPacket:
+
+    ARTNET_HEADER = b'Art-Net\x00'
+
+    def __init__(self):
+        self.op_code = None
+        self.ver = None
+        self.sequence = None
+        self.physical = None
+        self.universe = None
+        self.net = None
+        self.subuni = None
+        self.length = None
+        self.data = None
+
+    def __str__(self):
+        return ("ArtNet package:\n - op_code: 0x{0}\n - version: {1}\n - "
+                "sequence: {2}\n - physical: {3}\n - net: {4}\n - subuni: {5}\n -"
+                "length: {6}\n - data : {7}").format(
+            '{:02x}'.format(self.op_code), self.ver, self.sequence, self.physical,
+            self.net, self.subuni, self.length, self.data)
+
+    @staticmethod
+    def unpack_raw_artnet_packet(raw_data):
+
+        if unpack('!8s', raw_data[:8])[0] != ArtnetPacket.ARTNET_HEADER:
+            print("Received a non Art-Net packet")
+            return None
+
+        packet = ArtnetPacket()
+        try:
+            (packet.op_code, packet.ver, packet.sequence, packet.physical,
+                packet.subuni, packet.net, packet.length) = unpack('!HHBBBBH', raw_data[8:18])
+        except Exception:
+            return None
+
+        try:
+            packet.data = unpack(
+                '{0}s'.format(int(packet.length)),
+                raw_data[18:18+int(packet.length)])[0]
+        except Exception:
+            return None
+
+        return packet
 
 
 def parse_command_line():
@@ -62,6 +115,39 @@ def parse_command_line():
                         help="display current FPS of DMX frames")
 
     return parser.parse_args()
+
+
+def parse_config_inputs_section(handler, section):
+
+    this_config_dict = dict()
+
+    config_items = ["enabled", "universe"]
+
+    if section == "art-net":
+        config_items.append("listen_address")
+
+    if section not in handler.sections():
+        logging.warning("Section '%s' not found in config file" % section)
+        this_config_dict["%s.universe" % section] = default_dmx_universe
+        this_config_dict["%s.enabled" % section] = "0"
+    else:
+        for item in config_items:
+            config_dict_name = "%s.%s" % (section, item)
+            if item in list(dict(handler.items(section))):
+                this_config_dict[config_dict_name] = handler.get(section, item).strip()
+                logging.debug("Config: %s = %s" % (config_dict_name, this_config_dict[config_dict_name]))
+
+            if item == "universe" and (this_config_dict.get(config_dict_name) is None
+                                       or len(this_config_dict.get(config_dict_name)) == 0):
+                this_config_dict[config_dict_name] = default_dmx_universe
+                logging.debug("Config: option %s not set. Using default value: %s" %
+                              (config_dict_name, str(default_dmx_universe)))
+
+            if item == "enabled" and (this_config_dict.get(config_dict_name) is None
+                                      or len(this_config_dict.get(config_dict_name)) == 0):
+                this_config_dict[config_dict_name] = "1"
+
+    return this_config_dict
 
 
 def parse_own_config(config_file):
@@ -90,25 +176,19 @@ def parse_own_config(config_file):
 
     try:
         config_handler.read(config_file)
-    except ConfigParser.Error as e:
+    except configparser.Error as e:
         do_error_exit("Error during config file parsing: %s" % e)
     except Exception as e:
         do_error_exit("Unable to open file '%s': %s" % (config_file, str(e)))
 
-    # read logging section
-    this_section = "dmx"
-    if this_section not in config_handler.sections():
-        logging.warning("Section '%s' not found in '%s'" % (this_section, config_file))
-    else:
-        # read universe if present
-        if "universe" in list(dict(config_handler.items(this_section))):
-            config_dict["dmx.universe"] = config_handler.get(this_section, "universe")
-            logging.debug("Config: %s = %s" % ("dmx.universe", config_dict["dmx.universe"]))
+    config_dict.update(parse_config_inputs_section(config_handler, "art-net"))
+    config_dict.update(parse_config_inputs_section(config_handler, "ola-dmx"))
 
-    if config_dict.get("dmx.universe") is None:
-        config_dict["dmx.universe"] = default_dmx_universe
-        logging.debug("Config: option %s not set. Using default value: %s" %
-                      ("dmx.universe", str(default_dmx_universe)))
+    if config_dict["art-net.enabled"] == "1" and \
+            (config_dict.get("art-net.listen_address") is None or
+             len(config_dict["art-net.listen_address"]) == 0):
+        config_problem = True
+        logging.error("art-net option 'listen_address' not configured.")
 
     # initialize empty mapping array
     mapping = dict.fromkeys(range(dmx_num_channels), None)
@@ -118,7 +198,7 @@ def parse_own_config(config_file):
     # get osc sections
     for config_section in config_handler.sections():
 
-        if config_section != "dmx" and not config_section.startswith("osc/"):
+        if config_section not in ["ola-dmx", "art-net"] and not config_section.startswith("osc/"):
             logging.warning("ignoring invalid section '%s' in config file." % config_section)
             continue
 
@@ -288,6 +368,11 @@ def send_dmx_to_osc(data):
 
     last_run_ts = time.time()
 
+    # truncate DMX packet if it contains more then 512 values
+    data = data[:(dmx_num_channels - 1)]
+    # pad DMX packet if it is truncated
+    data.extend([0] * (dmx_num_channels - len(data)))
+
     for dmx_channel_id, value in enumerate(data):
 
         # if value for channel is different from last blocks value then send an OSC message
@@ -368,6 +453,63 @@ def send_dmx_to_osc(data):
     return
 
 
+def start_artnet_listener():
+    """
+        listen for Art-Net packages and send to OSC destination
+    """
+    logging.info("Art-Net server listening on {0}:{1}".format(
+        config["art-net.listen_address"], artnet_udp_port))
+
+    sock = socket(AF_INET, SOCK_DGRAM)  # UDP
+    sock.bind((config["art-net.listen_address"], artnet_udp_port))
+
+#    sock_broadcast = socket(AF_INET, SOCK_DGRAM)
+#    sock_broadcast.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+#    sock_broadcast.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+
+    last_sequence = 0
+    package_source_ip = None
+    listening_universe = int(config["art-net.universe"])
+
+    while True:
+        try:
+            data, address = sock.recvfrom(1024)
+
+            if package_source_ip is None:
+                logging.debug("accepting packages from: %s", address[0])
+                package_source_ip = address[0]
+            elif address[0] != package_source_ip:
+                continue
+
+            packet = ArtnetPacket.unpack_raw_artnet_packet(data)
+
+            # only accept "ArtDmx" packages
+            if packet is None or \
+                    packet.op_code != ArtDmxPackage or \
+                    packet.ver < 14:
+                continue
+
+            if packet.sequence != last_sequence:
+                last_sequence = packet.sequence
+            else:
+                continue
+
+            # check package for the correct universe
+            if packet.subuni != listening_universe:
+                continue
+
+            # convert byte data to list of ints
+            # works for python2 and python3
+            data_array = array.array("B")
+            data_array.fromstring(packet.data)
+            send_dmx_to_osc(list(data_array))
+
+        except KeyboardInterrupt:
+            sock.close()
+#            sock_broadcast.close()
+            exit(0)
+
+
 if __name__ == "__main__":
 
     # parse command line
@@ -384,15 +526,21 @@ if __name__ == "__main__":
     # parse config data
     config = parse_own_config(args.config_file)
 
+    if config["ola-dmx.enabled"] == "1" and ola_module_present is False:
+        logging.warning("OLA python libs not found.")
+        config["ola-dmx.enabled"] = "0"
+
     # register and run ola DMX client
-    if ola_present is True:
-        logging.info("starting DMX to OSC with OLA client")
+    if config["ola-dmx.enabled"] == "1":
+        logging.info("Starting DMX to OSC with OLA client")
         wrapper = ClientWrapper()
         client = wrapper.Client()
-        client.RegisterUniverse(int(config["dmx.universe"]), client.REGISTER, send_dmx_to_osc)
+        client.RegisterUniverse(int(config["ola-dmx.universe"]), client.REGISTER, send_dmx_to_osc)
         wrapper.Run()
+    elif config["art-net.enabled"] == "1":
+        start_artnet_listener()
     else:
-        logging.warning("OLA python libs not found.")
+        do_error_exit("No input method in config file defined/enabled.")
 
 exit(0)
 

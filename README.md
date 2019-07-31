@@ -3,6 +3,9 @@
 Tha basic idea of this script is to run it on a host with the [OLA](https://github.com/OpenLightingProject/ola)
 daemon and python-libs enabled. Recently basic Art-Net support was added.
 
+## Requirements
+* oscpy >= 0.4
+
 ## Install
 * [install OLA and python-libs](https://www.openlighting.org/ola/getting-started/downloads/)
 ```
@@ -28,3 +31,8 @@ This script supports receiving Art-Net packages as well but has quite some limit
 * only 1 universe is supported
 * receives unicast packages on the default Art-Net port 6454
 * Never tested with real live equipment
+
+## License
+>You can check out the full license [here](LICENSE.txt)
+
+This project is licensed under the terms of the **MIT** license.

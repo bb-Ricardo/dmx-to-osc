@@ -1,20 +1,20 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 #################
 #   imports
 
+import argparse
+import array
+import logging
+import time
 # standard modules
 from socket import (socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST)
 from struct import pack, unpack
-import array
+
 try:
     import configparser as configparser
 except ImportError:
     import ConfigParser as configparser
-
-import argparse
-import logging
-import time
 
 # 3rd party modules
 from oscpy.client import send_message as send_osc_message
@@ -25,12 +25,10 @@ try:
 except ImportError:
     ola_module_present = False
 
-
 __version__ = "0.0.3"
-__version_date__ = "2019-07-26"
+__version_date__ = "2019-07-31"
 __license__ = "MIT"
 __description__ = "script to receive dmx and send out osc commands to osc server"
-
 
 #################
 #   default and internal vars
@@ -49,7 +47,6 @@ osc_handle = None
 
 
 class ArtnetPacket:
-
     ARTNET_HEADER = b'Art-Net\x00'
 
     def __init__(self):
@@ -80,14 +77,14 @@ class ArtnetPacket:
         packet = ArtnetPacket()
         try:
             (packet.op_code, packet.ver, packet.sequence, packet.physical,
-                packet.subuni, packet.net, packet.length) = unpack('!HHBBBBH', raw_data[8:18])
+             packet.subuni, packet.net, packet.length) = unpack('!HHBBBBH', raw_data[8:18])
         except Exception:
             return None
 
         try:
             packet.data = unpack(
                 '{0}s'.format(int(packet.length)),
-                raw_data[18:18+int(packet.length)])[0]
+                raw_data[18:18 + int(packet.length)])[0]
         except Exception:
             return None
 
@@ -109,7 +106,7 @@ def parse_command_line():
                              "which is not installed under the default path '" +
                              default_config_file_path + "'",
                         metavar="dmx_to_osc.ini")
-    parser.add_argument("-v", "--verbose",  action='store_true',
+    parser.add_argument("-v", "--verbose", action='store_true',
                         help="be verbose and print debug information")
     parser.add_argument("--profile", action='store_true',
                         help="display current FPS of DMX frames")
@@ -118,7 +115,6 @@ def parse_command_line():
 
 
 def parse_config_inputs_section(handler, section):
-
     this_config_dict = dict()
 
     config_items = ["enabled", "universe"]
@@ -463,9 +459,9 @@ def start_artnet_listener():
     sock = socket(AF_INET, SOCK_DGRAM)  # UDP
     sock.bind((config["art-net.listen_address"], artnet_udp_port))
 
-#    sock_broadcast = socket(AF_INET, SOCK_DGRAM)
-#    sock_broadcast.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-#    sock_broadcast.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+    # sock_broadcast = socket(AF_INET, SOCK_DGRAM)
+    # sock_broadcast.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+    # sock_broadcast.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
 
     last_sequence = 0
     package_source_ip = None
@@ -506,7 +502,7 @@ def start_artnet_listener():
 
         except KeyboardInterrupt:
             sock.close()
-#            sock_broadcast.close()
+            # sock_broadcast.close()
             exit(0)
 
 

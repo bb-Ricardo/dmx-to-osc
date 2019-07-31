@@ -28,7 +28,7 @@ except ImportError:
 
 __version__ = "0.0.3"
 __version_date__ = "2019-07-26"
-__license__ = "GPLv3"
+__license__ = "MIT"
 __description__ = "script to receive dmx and send out osc commands to osc server"
 
 
